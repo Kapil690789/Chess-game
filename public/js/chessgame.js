@@ -1,93 +1,124 @@
-// const { Chess } = require("chess.js");
-
-// const { render } = require("ejs");
-
 const socket = io();
 const chess = new Chess();
 
-const boardElement = document.querySelector(".chessboard");
+const boardElement1 = document.getElementById("board1");
+const boardElement2 = document.getElementById("board2");
 
-let draggedPiece = null;
-let sourceSquare = null;
-let playerRole = null;
+let selectedPiece = null;  // Track the selected piece
+let availableMoves = [];   // Track the available moves
+let currentPlayer = 'w';   // Player starts with white
 
+// Function to render the chessboard
+const renderBoard = (boardElement) => {
+    const board = chess.board();
+    boardElement.innerHTML = "";
 
-const renderBoard  = () => {
-   const board  = chess.board();
-   boardElement.innerHTML = "";
-   board.forEach((row,rowindex) => {
-    row.forEach((square,squareindex) => {
-   const sqaureElement = document.createElement("div");
-   sqaureElement.classList.add(
-    "square",
-    (rowindex + squareindex) % 2 === 0 ? "light" : "dark"
-   );
+    board.forEach((row, rowIndex) => {
+        row.forEach((square, squareIndex) => {
+            const squareElement = document.createElement("div");
+            squareElement.classList.add(
+                "square",
+                (rowIndex + squareIndex) % 2 === 0 ? "light" : "dark"
+            );
 
-   sqaureElement.dataset.row = rowindex;
-   sqaureElement.dataset.col = squareindex;
+            squareElement.dataset.row = rowIndex;
+            squareElement.dataset.col = squareIndex;
 
-   if(square){
-     const pieceElement = document.createElement("div");
-     pieceElement.classList.add(
-        "piece",
-         square.color === 'w' ? "white" : "black"
-        );
-        pieceElement.innerText = getPieceUnicode(square);
-        pieceElement.draggable = playerRole === square.color;
+            // If there's a piece, render it
+            if (square) {
+                const pieceElement = document.createElement("div");
+                pieceElement.classList.add(
+                    "piece",
+                    square.color === 'w' ? "white" : "black"
+                );
+                pieceElement.innerText = getPieceUnicode(square);
+                pieceElement.dataset.row = rowIndex;
+                pieceElement.dataset.col = squareIndex;
 
-        pieceElement.addEventListener("dragstart", (e) => {
-            if(pieceElement.draggable){
-                draggedPiece = pieceElement;
-                sourceSquare = {row: rowindex, col : squareindex};
-                e.dataTransfer.setData("text/plain", "");
+                // Click event to select the piece
+                pieceElement.onclick = () => handlePieceClick(pieceElement, rowIndex, squareIndex);
+
+                squareElement.appendChild(pieceElement);
             }
+
+            // Highlight available moves
+            if (availableMoves.some(move => move.row === rowIndex && move.col === squareIndex)) {
+                squareElement.classList.add("highlight");
+            }
+
+            // Click event to move a piece to a valid square
+            squareElement.onclick = () => handleSquareClick(rowIndex, squareIndex);
+
+            boardElement.appendChild(squareElement);
         });
-        pieceElement.addEventListener("dragend", (e) => {
-           draggedPiece = null;
-           sourceSquare = null;
-        });
+    });
 
-        sqaureElement.appendChild(pieceElement);
-   }
+    if (currentPlayer === 'b') {
+        boardElement.classList.add("flipped");
+    } else {
+        boardElement.classList.remove("flipped");
+    }
+};
 
-   sqaureElement.addEventListener("dragover", function(e){
-       e.preventDefault();
-     });
+// Handle piece selection on click
+const handlePieceClick = (pieceElement, row, col) => {
+    const square = chess.board()[row][col];
 
-     sqaureElement.addEventListener("drop", (e)=>{
-        e.preventDefault();
-        if(draggedPiece){
-            const targetSource = {
-                row: parseInt(sqaureElement.dataset.row),
-                col: parseInt(sqaureElement.dataset.col),
+    // Select the piece if it belongs to the current player
+    if (square && square.color === currentPlayer) {
+        // Deselect previous piece
+        if (selectedPiece) {
+            const prevPieceElement = document.querySelector(`[data-row="${selectedPiece.row}"][data-col="${selectedPiece.col}"]`);
+            prevPieceElement.classList.remove("selected");
+        }
+
+        // Select the clicked piece
+        selectedPiece = { row, col, piece: square };
+        pieceElement.classList.add("selected");
+
+        // Get the valid moves for the selected piece
+        availableMoves = chess.moves({ square: `${String.fromCharCode(97 + col)}${8 - row}`, verbose: true });
+
+        // Render the updated board
+        renderBoard(boardElement1);
+        renderBoard(boardElement2);
+    }
+};
+
+// Handle square click to move the selected piece
+const handleSquareClick = (rowIndex, colIndex) => {
+    if (selectedPiece) {
+        const moveTo = `${String.fromCharCode(97 + colIndex)}${8 - rowIndex}`;
+
+        // Check if the move is valid
+        if (availableMoves.some(move => move.to === moveTo)) {
+            const move = {
+                from: `${String.fromCharCode(97 + selectedPiece.col)}${8 - selectedPiece.row}`,
+                to: moveTo,
+                promotion: 'q',
             };
 
-            handleMove(sourceSquare,targetSource);
+            const moveResult = chess.move(move);
+            if (moveResult) {
+                // Emit move to the server (if needed)
+                socket.emit("move", move);
+                
+                // Switch turn to the other player
+                currentPlayer = chess.turn();
+
+                // Reset the selection and available moves
+                selectedPiece = null;
+                availableMoves = [];
+
+                // Re-render the board after the move
+                renderBoard(boardElement1);
+                renderBoard(boardElement2);
+            }
         }
-     });
-     boardElement.appendChild(sqaureElement);
-    });
-   });
-  
-   if(playerRole == 'b'){
-    boardElement.classList.add("flipped");
-   }
-   else{
-    boardElement.classList.remove("flipped");
-   }
+    }
 };
 
-
-
-const handleMove = (source,target) => {
-    const move = {
-        from: `${String.fromCharCode(97+source.col)}${8-source.row}`,
-        to: `${String.fromCharCode(97+target.col)}${8-target.row}`,
-        promotion: 'q',
-    };
-   socket.emit("move",move);
-};
-
+// Get Unicode for the chess pieces
 const getPieceUnicode = (piece) => {
     const unicodePieces = {
         p: { w: "♙", b: "♟" },    // Pawn
@@ -97,26 +128,9 @@ const getPieceUnicode = (piece) => {
         q: { w: "♕", b: "♛" },    // Queen
         k: { w: "♔", b: "♚" },    // King
     };
-    //  return unicodePieces[piece.type] || "";
-     return unicodePieces[piece.type][piece.color] || "" ;
+    return unicodePieces[piece.type][piece.color] || "";
 };
 
-socket.on("playerRole", (role)=>{
-    playerRole  = role;
-    renderBoard();
-});
-
-socket.on("spectatorRole", ()=>{
-   playerRole = null;
-   renderBoard();
-});
-
-socket.on("boardState", function(fen){
-  chess.load(fen);
-  renderBoard();
-});
-socket.on("move", function(move){
-    chess.move(move);
-    renderBoard();
-});
-renderBoard();
+// Initially render both boards
+renderBoard(boardElement1);
+renderBoard(boardElement2);

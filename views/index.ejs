@@ -11,8 +11,10 @@
             display: grid;
             grid-template-columns: repeat(8, 1fr);
             grid-template-rows: repeat(8, 1fr);
-            width: 500px;
-            height: 500px;
+            width: 100%;
+            height: 100%;
+            max-width: 500px;
+            max-height: 500px;
             border: 2px solid #444;
             box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.5);
             overflow: hidden;
@@ -46,17 +48,57 @@
             from { opacity: 0; }
             to { opacity: 1; }
         }
+
+        /* Responsive Layout */
+        .chessboards-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        /* Mobile-friendly layout */
+        @media (max-width: 768px) {
+            .chessboards-container {
+                flex-direction: column;
+            }
+        }
+
+        /* Background Styling */
+        body {
+            background: linear-gradient(to bottom right, #3b3b3b, #1a1a1a);
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            color: white;
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* Container for Chessboards */
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            padding: 40px;
+        }
     </style>
 </head>
-<body class="bg-gradient-to-br from-gray-900 to-gray-800 h-screen flex items-center justify-center">
+<body class="h-screen flex items-center justify-center">
 
-    <div class="chessboard">
-        <!-- Generate 8x8 grid dynamically -->
-        <% for (let row = 0; row < 8; row++) { %>
-            <% for (let col = 0; col < 8; col++) { %>
-                <div class="square <%= (row + col) % 2 === 0 ? 'light' : 'dark' %>"></div>
-            <% } %>
-        <% } %>
+    <!-- Main Game Container -->
+    <div class="game-container">
+        <h1 class="text-white">Interactive Chess Game</h1>
+        <!-- Two chessboards container -->
+        <div class="chessboards-container">
+            <div class="chessboard" id="board1"></div>
+            <div class="chessboard" id="board2"></div>
+        </div>
     </div>
 
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" 
