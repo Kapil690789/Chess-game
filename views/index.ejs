@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Chessboard</title>
+    <title>Interactive Chess Game</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Chessboard Styling */
@@ -43,25 +43,31 @@
             user-select: none;
         }
 
-        /* Animation */
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        /* Flip board for player 2 */
+        .flipped {
+            transform: rotate(180deg);
         }
 
-        /* Responsive Layout */
+        /* Responsive Layout for Chessboards */
         .chessboards-container {
             display: flex;
             justify-content: center;
-            align-items: center;
-            gap: 20px;
+            gap: 10px;
             flex-wrap: wrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            margin-bottom: 20px;
         }
 
         /* Mobile-friendly layout */
         @media (max-width: 768px) {
             .chessboards-container {
                 flex-direction: column;
+                align-items: center;
+            }
+            .chessboard {
+                width: 90vw;
+                height: 90vw;
             }
         }
 
