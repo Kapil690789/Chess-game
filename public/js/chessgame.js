@@ -9,9 +9,9 @@ let availableMoves = [];
 let currentPlayer = 'w'; // White starts first
 
 // Render the chessboard
-const renderBoard = (boardElement, flipped = false) => {
+const renderBoard = (boardElement, isInteractive) => {
     const board = chess.board();
-    boardElement.innerHTML = "";
+    boardElement.innerHTML = ""; // Clear existing board
 
     board.forEach((row, rowIndex) => {
         row.forEach((square, squareIndex) => {
@@ -35,7 +35,7 @@ const renderBoard = (boardElement, flipped = false) => {
                 pieceElement.dataset.row = rowIndex;
                 pieceElement.dataset.col = squareIndex;
 
-                pieceElement.onclick = () => handlePieceClick(pieceElement, rowIndex, squareIndex);
+                pieceElement.onclick = () => isInteractive && handlePieceClick(pieceElement, rowIndex, squareIndex);
 
                 squareElement.appendChild(pieceElement);
             }
@@ -44,17 +44,11 @@ const renderBoard = (boardElement, flipped = false) => {
                 squareElement.classList.add("highlight");
             }
 
-            squareElement.onclick = () => handleSquareClick(rowIndex, squareIndex);
+            squareElement.onclick = () => isInteractive && handleSquareClick(rowIndex, squareIndex);
 
             boardElement.appendChild(squareElement);
         });
     });
-
-    if (flipped) {
-        boardElement.classList.add("flipped");
-    } else {
-        boardElement.classList.remove("flipped");
-    }
 };
 
 // Handle piece click (for selecting a piece to move)
@@ -72,8 +66,8 @@ const handlePieceClick = (pieceElement, row, col) => {
 
         availableMoves = chess.moves({ square: `${String.fromCharCode(97 + col)}${8 - row}`, verbose: true });
 
-        renderBoard(boardElement1, currentPlayer === 'b');
-        renderBoard(boardElement2, currentPlayer === 'w');
+        renderBoard(boardElement1, currentPlayer === 'w');
+        renderBoard(boardElement2, currentPlayer === 'b');
     }
 };
 
@@ -97,8 +91,8 @@ const handleSquareClick = (rowIndex, colIndex) => {
                 selectedPiece = null;
                 availableMoves = [];
 
-                renderBoard(boardElement1, currentPlayer === 'b');
-                renderBoard(boardElement2, currentPlayer === 'w');
+                renderBoard(boardElement1, currentPlayer === 'w');
+                renderBoard(boardElement2, currentPlayer === 'b');
             }
         }
     }
@@ -120,21 +114,21 @@ const getPieceUnicode = (piece) => {
 // Listen for updates from the server
 socket.on("move", (move) => {
     chess.move(move);
-    renderBoard(boardElement1, currentPlayer === 'b');
-    renderBoard(boardElement2, currentPlayer === 'w');
+    renderBoard(boardElement1, currentPlayer === 'w');
+    renderBoard(boardElement2, currentPlayer === 'b');
 });
 
 socket.on("playerRole", (role) => {
     currentPlayer = role;
-    renderBoard(boardElement1, role === 'b');
-    renderBoard(boardElement2, role === 'w');
+    renderBoard(boardElement1, role === 'w');
+    renderBoard(boardElement2, role === 'b');
 });
 
 socket.on("boardState", () => {
-    renderBoard(boardElement1, currentPlayer === 'b');
-    renderBoard(boardElement2, currentPlayer === 'w');
+    renderBoard(boardElement1, currentPlayer === 'w');
+    renderBoard(boardElement2, currentPlayer === 'b');
 });
 
 // Initially render both boards
 renderBoard(boardElement1, false);
-renderBoard(boardElement2, true);
+renderBoard(boardElement2, false);
